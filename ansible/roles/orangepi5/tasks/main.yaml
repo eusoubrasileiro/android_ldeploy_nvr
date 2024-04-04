@@ -22,15 +22,6 @@
   tags:
     - sql3
 
-# - name: fstab to mount nfs shared folder
-#   ansible.builtin.lineinfile:
-#     path: /etc/fstab
-#     line: orangepizero2:/mnt/motion               /mnt/motion      nfs auto,nofail,noatime,nolock,intr,tcp,actimeo=1800 0 0
-#     create: yes
-#   become: true
-#   tags:
-#     - config
-
 - name: Create /mnt/motion directory
   file:
     path: /mnt/motion
@@ -42,26 +33,16 @@
   tags:
     - config
 
-# retry=forever is needed for NFS since motion needs its as a dependecy 
-- name: Mount an nfs shared folder
-  ansible.posix.mount:
-    src: orangepizero2:/mnt/motion
-    path: /mnt/motion
-    opts: rw,auto,nofail,noatime,nolock,intr,tcp,actimeo=1800,retry=forever,timeo=600
-    state: mounted
-    fstype: nfs
+- name: Remove default nginx
+  shell: |
+    if [ ! -f "/etc/nginx/sites-enabled/default" ]; then
+      rm /etc/nginx/sites-enabled/default
+    fi
   become: true
   tags:
+    - nginx
+    - install
     - config
-
-
-#192.168.0.45:/mnt/motion /mnt/motion   nfs rw,auto,nofail,noatime,nolock,intr,tcp,actimeo=1800,retry=forever,timeo=600 0 0
-
-
-
-
-# per ansible repository issue: must include allways tags on include_tasks
-# https://github.com/ansible/ansible/issues/41540#issuecomment-397341326
 
 - name: Install nginx .conf
   template:
@@ -77,14 +58,6 @@
     - config
     - install
 
-- name: Remove default nginx
-  shell: |
-    if [ ! -f "/etc/nginx/sites-enabled/default" ]; then
-      rm /etc/nginx/sites-enabled/default
-    fi
-  become: true
-  tags:
-    - nginx
 
 - name: Install motion's and ro-overlay services
   template:
@@ -92,8 +65,7 @@
     dest: /etc/systemd/system/
   become: true
   loop:
-    - motion.service
-    - motion_helper.service
+    - motion_nvr.service
     - ro_overlay.service
   tags:
     - install
@@ -107,9 +79,8 @@
     daemon_reload: true
     force: true
   loop:
-    - motion
-    - motion_helper
-    - nginx
+    - motion_nvr  
+    - nginx    
   become: true
   tags:
     - enable

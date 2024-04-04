@@ -1,0 +1,16 @@
+[Unit]
+Description = Motion NVR Service (python wrapper for motion binary)
+After=network.service 
+Wants=network-online.target
+
+[Service]
+User=andre
+Group=andre
+Restart=always
+ExecStart=/usr/bin/motion_nvr.py -d {{ motion_storage_dir }} -m {{ motion_storage_size }}
+RestartSec=900
+# 15 minutes to restart in crazy failures on booting
+
+[Install]
+WantedBy=multi-user.target
+

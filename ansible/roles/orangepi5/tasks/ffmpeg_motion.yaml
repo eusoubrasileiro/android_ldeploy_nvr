@@ -50,8 +50,20 @@
 
 - name: Install motion_helper.py
   template:
-    src: usr/bin/motion_helper.py
-    dest: /usr/bin/motion_helper.py
+    src: usr/bin/mnt-motion-mount.sh
+    dest: /usr/bin/mnt-motion-mount.sh
+    owner: andre
+    group: andre
+    mode: 777
+  become: true
+  ignore_errors: yes
+  tags:
+    - install
+
+- name: Install motion_helper.py
+  template:
+    src: usr/bin/motion_nvr.py
+    dest: /usr/bin/motion_nvr.py
     owner: andre
     group: andre
     mode: 777

@@ -27,19 +27,22 @@ config = {
     'gmail_user' : 'eusoubrasileiro@gmail.com',
     'gmail_to' : 'aflopes7@gmail.com',
     'gmail_app_password' : {{ gmail_app_password }} ,
+    'passwd' : 'your-passwd-here'
 }
 
-def background_task(interval_secs=15*60):
+def background_task(interval_secs=15*60, delay_start=0):
     def background_task_decorator(function):
         """Decorator for tasks to be run on background (Thread)
         exceptions are handled, `interval_secs` is the amount of time to wait between looped execution
+        `delay_start` is the amount of time to wait before starting the looped execution
         doesn't return function return value since on onother thread
         """
         @functools.wraps(function)
         def wrapper(*args, **kwargs):       
             def loop_func():
                 while True:
-                    try:                
+                    try:            
+                        time.sleep(delay_start)    
                         function(*args, **kwargs)
                         time.sleep(interval_secs)
                     except Exception as e:
@@ -203,6 +206,7 @@ class MotionSubprocessThread(threading.Thread):
                 while not self.stop_event.is_set(): # Read and process stderr while the subprocess is running (all logs are in stderr)                
                     line = self.process.stderr.readline()
                     log_print(line.strip('\n'))            
+                log_print(f"MotionSubprocess requested to stop", file=oddlog)
                 self.stop_event.clear()
                 self.stop = True            
                 self.terminate() # Terminate the subprocess 
@@ -215,17 +219,18 @@ class MotionSubprocessThread(threading.Thread):
                 else:
                     log_print("MotionSubprocess terminated due to an unknown error", file=oddlog)
             except Exception as e:
-                log_print(f"MotionSubprocess running subprocess: {e}", file=oddlog)
-            finally:
-                # only arrives here if self.stop_event.is_set() or exception happens
-                if self.stop: # wait to be restarted
-                    with self.restart_condition:  # notify we are ready to restart
-                        self.restart_condition.notify()
-                    with self.restart_condition:
-                        self.restart_condition.wait() # wait to be restarted
-                self.terminate() # make sure that the subprocess is really dead
-                self.stop = False            
-            
+                log_print(f"MotionSubprocess running subprocess: {e}", file=oddlog)        
+            # only arrives here if self.stop_event.is_set() or exception happens
+            if self.stop: # wait to be restarted
+                log_print(f"MotionSubprocess stopped. Waiting to restart...", file=oddlog)
+                with self.restart_condition:  # notify we are ready to restart
+                    self.restart_condition.notify()
+                with self.restart_condition:
+                    self.restart_condition.wait() # wait to be restarted
+            self.terminate() # make sure that the subprocess is really dead
+            self.stop = False            
+            log_print(f"MotionSubprocess dead. Restarting...", file=oddlog)
+        
 
 def motion_main_loop():   
     """
@@ -236,13 +241,13 @@ def motion_main_loop():
     """
     stop_motion = threading.Event()
     restart_motion = threading.Condition()    
-    motion_thread = MotionSubprocessThread(stop_event, restart_motion)
+    motion_thread = MotionSubprocessThread(stop_motion, restart_motion)
     motion_thread.start()    
     while True:    # if motion dies without ever nfs share unmounting? it will restart again 
         # wait being notified - then control comes back to here        
         with nfs_condition:
             nfs_condition.wait()             
-        stop_event.set() # stop motion process
+        stop_motion.set() # stop motion process
         with restart_motion: # wait to be notified that it is dead
             restart_motion.wait()
         # motion was terminated now transfer control to check_nfs_share_alive()
@@ -255,8 +260,8 @@ def motion_main_loop():
             restart_motion.notify() # nfs is mounted - notify so motion can restart
 
 
-
-@background_task(interval_secs=15*60) # run every 15 minutes
+# run every 15 minutes, delay 30 seconds to start due motion thread needs to be running already
+@background_task(interval_secs=15*60, delay_start=30) 
 def check_nfs_share_alive():    
     if not os.path.ismount(config['motion_data_path']):
         log_print("motion nvr :: nfs share is not mounted :: Stopping Motion", file=oddlog)        
@@ -268,9 +273,8 @@ def check_nfs_share_alive():
         process = subprocess.Popen("sudo -S bash /usr/bin/mnt-motion-mount.sh".split(" "), 
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-        passwd='type your password here'
-        stdout, stderr = process.communicate(input=f'{paswd}\n'.encode()) 
+            stderr=subprocess.PIPE)        
+        stdout, stderr = process.communicate(input=f"{config['passwd']}\n".encode()) 
         log_print("motion nvr :: popen mnt-motion mount stdout:", stdout.decode(), file=oddlog)
         log_print("motion nvr :: popen mnt-motion mount stderr:", stderr.decode(), file=oddlog)
         send_email("motion nvr :: nfs share remounted :: restarting Motion")

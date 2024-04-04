@@ -65,7 +65,7 @@
     dest: /etc/systemd/system/
   become: true
   loop:
-    - motion_nvr.service
+    - motion.service
     - ro_overlay.service
   tags:
     - install
@@ -79,7 +79,7 @@
     daemon_reload: true
     force: true
   loop:
-    - motion_nvr  
+    - motion 
     - nginx    
   become: true
   tags:

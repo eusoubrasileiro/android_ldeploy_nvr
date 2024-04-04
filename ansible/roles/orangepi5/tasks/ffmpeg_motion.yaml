@@ -62,8 +62,8 @@
 
 - name: Install motion_helper.py
   template:
-    src: usr/bin/motion_nvr.py
-    dest: /usr/bin/motion_nvr.py
+    src: usr/bin/motion.py
+    dest: /usr/bin/motion.py
     owner: andre
     group: andre
     mode: 777

@@ -7,7 +7,7 @@ Wants=network-online.target
 User=andre
 Group=andre
 Restart=always
-ExecStart=/usr/bin/motion_nvr.py -d {{ motion_storage_dir }} -m {{ motion_storage_size }}
+ExecStart=/usr/bin/motion.py -d {{ motion_storage_dir }} -m {{ motion_storage_size }}
 RestartSec=900
 # 15 minutes to restart in crazy failures on booting
 

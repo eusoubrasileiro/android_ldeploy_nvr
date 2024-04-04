@@ -282,7 +282,6 @@ def check_nfs_share_alive():
         with nfs_condition:
             nfs_condition.notify() # notify motion_main_loop() that nfs share is mounted
 
-
 def main():        
     try:        
         log_print('motion nvr :: starting', file=oddlog)                

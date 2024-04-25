@@ -1,4 +1,6 @@
-### Network Video Recorder System for Jetson Nano Developers Kit
+### Network Video Recorder System for Orangepi5
+
+- Dropped Jetson Nano hardware due issues on my board. Now using Orangepi5
 
 - Uses [Motion Project](https://github.com/Motion-Project/motion)
 

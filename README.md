@@ -1,6 +1,7 @@
 ### Network Video Recorder System for Orangepi5
 
 - Dropped Jetson Nano hardware due issues on my board. Now using Orangepi5 with Armbian image (cli-server).
+(hardware decoding from ffmpeg port of rockchip mpp even using 'software' decoders (here)[https://github.com/Motion-Project/motion/discussions/1710#discussioncomment-10467237]  
 
 - Uses [Motion Project](https://github.com/Motion-Project/motion)
 
